@@ -2,7 +2,7 @@
 .SYNOPSIS
     Uninstall script for Windows
 .DESCRIPTION
-    Remove dotfiles configuration for current Windows user
+    Remove PSDotfiles configuration for current Windows user
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param()
@@ -24,8 +24,10 @@ if (Test-Path -Path $vimrc) { Remove-Item -Path $vimrc -Force }
 $gitconfig = Join-Path -Path $env:USERPROFILE -ChildPath .gitconfig
 if (Test-Path -Path $gitconfig) { Remove-Item -Path $gitconfig -Force }
 
-# Remove dotfiles
-if (Test-Path $Env:DOTFILES) { Remove-Item -Path $Env:PSDOTFILES -Recurse -Force}
+# Remove PSDotfiles
+if ((-not ($null -eq $Env:PSDOTFILES)) -and (Test-Path $Env:PSDOTFILES)) {
+    Remove-Item -Path $Env:PSDOTFILES -Recurse -Force
+}
 
 # Unset PSDOTFILES environment variable
 [System.Environment]::SetEnvironmentVariable("PSDOTFILES", $null, [System.EnvironmentVariableTarget]::User)

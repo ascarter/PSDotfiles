@@ -11,5 +11,5 @@ param(
     [switch]$Force
 )
 
-if (-not (Get-Module Dotfiles)) { Import-Module (Join-Path -Path $Path -ChildPath Modules\PSDotfiles) }
+if (-not (Get-Module PSDotfiles)) { Import-Module (Join-Path -Path $Path -ChildPath Modules\PSDotfiles) }
 Install-Bootstrap -Path $Path -Force:$Force -Verbose

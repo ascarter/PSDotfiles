@@ -41,7 +41,7 @@ Set-ExecutionPolicy Bypass -Scope Process; Invoke-WebRequest https://raw.githubu
 If directly executing powershell script is not desired, clone into a location (recommend `%USERPROFILE%\.config\PSDotfiles`).
 
 ```powershell
-git clone git@github.com:ascarter/dotfiles.git $env:USERPROFILE\.config\PSDotfiles
+git clone git@github.com:ascarter/PSDotfiles.git $env:USERPROFILE\.config\PSDotfiles
 cd $env:USERPROFILE\.config\PSDotfiles
 .\install.ps1
 ```

@@ -1,12 +1,12 @@
 #region Dotfiles setup
 
-# Set DOTFILES environment varible if not already set
-if ($null -eq [System.Environment]::GetEnvironmentVariable('DOTFILES', 'User')) {
-    Set-Item -Path Env:DOTFILES -Value (Join-Path $Env:USERPROFILE -ChildPath .config\dotfiles)
+# Set PSDOTFILES environment varible if not already set
+if ($null -eq [System.Environment]::GetEnvironmentVariable('PSDOTFILES', 'User')) {
+    Set-Item -Path Env:PSDOTFILES -Value (Join-Path $Env:USERPROFILE -ChildPath .config\PSDotfiles)
 }
 
-# Add Dotfiles module to path
-$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:DOTFILES -ChildPath powershell\modules)
+# Add PSDotfiles module to path
+$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSDOTFILES -ChildPath powershell\modules)
 
 #endregion
 

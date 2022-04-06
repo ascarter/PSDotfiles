@@ -42,7 +42,7 @@ foreach ($p in $packages) {
 }
 
 Write-Output 'Installing PSDotfiles'
-# Clone dotfiles
+# Clone PSdotfiles
 if (-not (Test-Path -Path $Path)) {
     Write-Output 'Clone PSDotfiles'
     $dotfileParent = Split-Path -Path $Path

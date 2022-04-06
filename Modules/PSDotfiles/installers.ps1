@@ -15,18 +15,18 @@ $ErrorActionPreference = 'Stop'
 function Install-Bootstrap {
     <#
         .SYNOPSIS
-            Bootstrap dotfiles
+            Bootstrap PSDotfiles
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param (
-        # Dotfiles path
-        [string]$Path = $Env:DOTFILES,
+        # PSDotfiles path
+        [string]$Path = $Env:PSDOTFILES,
 
         # Replace existing configuration
         [switch]$Force
     )
 
-    Write-Output 'Bootstrap dotfiles'
+    Write-Output 'Bootstrap PSDotfiles'
 
     Write-Verbose "Install profile to $Path"
     Install-Profile -Path $Path -Force:$Force
@@ -120,8 +120,8 @@ function Install-Zip {
 function Install-Profile {
     [CmdletBinding(SupportsShouldProcess)]
     param (
-        # Path of dotfiles
-        [string]$Path = $Env:DOTFILES,
+        # Path of PSDotfiles
+        [string]$Path = $Env:PSDOTFILES,
 
         [string]$PSProfile = $PROFILE.CurrentUserAllHosts,
 
@@ -144,8 +144,8 @@ function Install-Profile {
 function Install-Vimrc {
     [CmdletBinding(SupportsShouldProcess)]
     param (
-        # Path of dotfiles
-        [string]$Path = $Env:DOTFILES,
+        # Path of PSDotfiles
+        [string]$Path = $Env:PSDOTFILES,
 
         # Replace existing vimrc
         [switch]$Force

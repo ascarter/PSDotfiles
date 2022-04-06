@@ -15,7 +15,7 @@ if ($host.Name -eq 'ConsoleHost') {
 #region Helpers
 
 function Set-LocationDotfiles {
-    Set-Location -Path $Env:DOTFILES
+    Set-Location -Path $Env:PSDOTFILES
 }
 Set-Alias -Name dotfiles -Value Set-LocationDotfiles
 
