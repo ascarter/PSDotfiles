@@ -7,7 +7,11 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     # Dotfiles destination
-    [string]$Path = (Join-Path -Path $env:USERPROFILE -ChildPath '.config\PSDotfiles')
+    [string]$Path = (Join-Path -Path $env:USERPROFILE -ChildPath '.config\PSDotfiles'),
+
+    # Replace existing configuration
+    [switch]$Force
+
 )
 
 Set-StrictMode -Version Latest
