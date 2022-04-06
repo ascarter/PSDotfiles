@@ -6,7 +6,7 @@ if ($null -eq [System.Environment]::GetEnvironmentVariable('PSDOTFILES', 'User')
 }
 
 # Add PSDotfiles module to path
-$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSDOTFILES -ChildPath powershell\modules)
+$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSDOTFILES -ChildPath modules)
 
 #endregion
 
