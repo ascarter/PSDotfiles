@@ -1,0 +1,255 @@
+" vimrc
+" Multi-platform vimrc for software development
+"
+" Author: Andrew Carter <ascarter@uw.edu>
+" MIT License
+
+set nocompatible
+filetype off
+let mapleader=","
+set backspace=indent,eol,start
+
+" =====================================
+" Plugins
+" =====================================
+
+" Enable extend % matching
+runtime macros/matchit.vim
+
+" Install vim plug
+if has("win32")
+    if empty(glob('~\vimfiles\autoload\plug.vim'))
+        silent !curl -fLo \%USERPROFILE\%\\vimfiles\\autoload\\plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+    endif
+    call plug#begin('~/vimfiles/bundle')
+else
+    if empty(glob('~/.vim/autoload/plug.vim'))
+          silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+    endif
+    call plug#begin('~/.vim/bundle')
+endif
+
+" EditorConfig
+Plug 'editorconfig/editorconfig-vim'
+
+" Status line
+Plug 'itchyny/lightline.vim'
+
+" Color schemes
+Plug 'albertorestifo/github.vim'
+Plug 'altercation/vim-colors-solarized'
+Plug 'arcticicestudio/nord-vim'
+Plug 'cocopon/iceberg.vim'
+Plug 'kjssad/quantum.vim'
+Plug 'nightsense/snow'
+Plug 'NLKNguyen/papercolor-theme'
+Plug 'rakr/vim-one'
+Plug 'romainl/Apprentice'
+Plug 'vim-scripts/xoria256.vim'
+Plug 'wojciechkepka/vim-github-dark'
+
+call plug#end()
+
+" Install any missing plugins
+autocmd VimEnter *
+  \  if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
+  \|   PlugInstall --sync | q
+  \| endif
+
+" =====================================
+" UI
+" =====================================
+
+" Color scheme
+if has("termguicolors")
+    " Windows 10 terminal
+    if has("vcon")
+        set termguicolors
+    endif
+endif
+
+colorscheme ghdark
+let g:gh_color = "soft"
+" set background=dark
+let g:lightline = { 'colorscheme': 'ghdark' }
+
+" Flash screen only - no beep
+set visualbell
+
+" Show line numbers
+set number
+
+" Cursor shape
+" 1 -> blinking block
+" 2 -> solid block
+" 3 -> blinking underscore
+" 4 -> solid underscore
+" 5 -> blinking vertical bar
+" 6 -> solid vertical bar
+let &t_SI = "\e[5 q"  "SI=INSERT mode
+let &t_SR = "\e[4 q"  "SR=REPLACE mode
+let &t_EI = "\e[1 q"  "EI=NORMAL mode
+
+" Set fill characters
+set fillchars=vert:\ ,fold:-
+
+" Status line
+if has('statusline')
+    " Mode is shown by lightline
+    set noshowmode
+    set laststatus=2
+    " set statusline=%<%f%{tagbar#currenttag('[%s]\ ','')}\ %w%h%m%r%=%-14.(%l,%c%V%)\ %P
+endif
+
+set hidden
+set cursorline
+set modeline
+set ruler
+set title
+
+" Searching
+set showmatch
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
+
+" Completion
+set wildmenu
+set wildmode=list:longest
+set wildignore=*.o,*.obj,*~,*DS_Store*
+
+" Folding
+set foldenable
+set foldmethod=syntax
+" Default to expanded
+set foldlevel=10
+"set foldcolumn=1
+
+" netrw
+let g:netrw_banner=0
+let g:netrw_alto=&sb
+let g:netrw_altv=&spr
+let g:netrw_list_hide='.git,.DS_Store,.*\.swp$'
+let g:netrw_liststyle=3
+let g:netrw_preview = 1
+" let g:netrw_winsize=20
+
+" Window management
+
+" Adjust viewports to the same size
+map <Leader>= <C-w>=
+imap <Leader>= <ESC> <C-w>=
+
+" Tagbar
+nmap <F8> :TagbarToggle<CR>
+
+" Enable Dash search
+if has('macunix')
+    :nmap <silent> <leader>d <Plug>DashSearch
+endif
+
+" =====================================
+" Syntax and file types
+" =====================================
+
+set encoding=utf-8
+syntax enable
+filetype on
+filetype plugin on
+filetype indent on
+
+" Whitespace
+set nowrap
+set autoindent
+
+" Go
+let g:go_fmt_command = "gofmt"
+
+" Test if running in WSL
+function! IsWSL()
+    if has("unix") || has("linux")
+        let lines = readfile("/proc/version")
+        if lines[0] =~ "Microsoft"
+            return 1
+        endif
+    endif
+    return 0
+endfunction
+
+" =====================================
+" GUI settings
+" =====================================
+
+if has("gui_running")
+    if has("termguicolors")
+        set termguicolors
+    endif
+
+    " Set standard starting window size
+    if &diff
+        set lines=40 columns=160
+    else
+        set lines=40 columns=100
+    endif
+
+    " Turn off toolbar
+    set guioptions-=T
+
+    " Turn on menus
+    set guioptions+=m
+
+    " Turn off blinking cursor
+    " set guicursor+=n:blinkon0
+
+    if has('gui_macvim')
+        " Mac OS X
+        " set macthinstrokes
+        set guifont=SF\ Mono\ Regular:h13,Menlo:h13
+        let macvim_hig_shift_movement = 1
+        au FocusLost * set transp=5
+        au FocusGained * set transp=0
+
+        " Typical Mac OS X keymappings
+        " cmd-[ / cmd-] to increase/decrease indentation
+        vmap <D-]> >gv
+        vmap <D-[> <gv
+        map <D-]> >>
+        map <D-[> <<
+
+        " cmd-<0...9> to switch tabs
+        map  <D-0> 0gt
+        imap <D-0> <Esc>0gt
+        map  <D-1> 1gt
+        imap <D-1> <Esc>1gt
+        map  <D-2> 2gt
+        imap <D-2> <Esc>2gt
+        map  <D-3> 3gt
+        imap <D-3> <Esc>3gt
+        map  <D-4> 4gt
+        imap <D-4> <Esc>4gt
+        map  <D-5> 5gt
+        imap <D-5> <Esc>5gt
+        map  <D-6> 6gt
+        imap <D-6> <Esc>6gt
+        map  <D-7> 7gt
+        imap <D-7> <Esc>7gt
+        map  <D-8> 8gt
+        imap <D-8> <Esc>8gt
+        map  <D-9> 9gt
+        imap <D-9> <Esc>9gt
+    elseif IsWSL()
+        " Linux on WSL
+        set guifont=Monospace\ 14
+    elseif has('gui_gtk2') || has('gui_gtk3')
+        " Linux
+        set guifont=Fira\ Code\ 12,Roboto\ Mono\ 12,Source\ Code\ Pro\ Medium\ 12,Monospace\ 12
+    elseif has('gui_win32')
+        " Windows
+        set guifont=Fira\ Code:h10,Roboto\ Mono:h12,Cascadia\ Code:h12,Source\ Code\ Pro:h12,Consolas:h12
+        set renderoptions=type:directx
+    endif
+endif
+
