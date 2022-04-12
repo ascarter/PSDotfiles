@@ -4,7 +4,7 @@ PSDotfiles is a PowerShell module for configuring the user environment. It is in
 
 ## Layout
 
-* `` - PowerShell configuration
+* `conf` - Configuration files for utilities like Vim
 * `Modules` - PowerShell modules
 
 An optional install script is available to provision PSDotfiles.

@@ -1,15 +1,3 @@
-<#
-.SYNOPSIS
-    Windows developer configuration
-.DESCRIPTION
-    Configure Windows for development
-#>
-[CmdletBinding()]
-param()
-
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
 #region Tasks
 
 function Install-Bootstrap {
@@ -205,18 +193,26 @@ function Update-PowerShellModules {
 #region System
 
 function Install-SSH() {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        # Enable OpenSSH Agent
+        [switch]$EnableAgent
+    )
+
     # Install OpenSSH
     # https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
     Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
     Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 
-    # Start ssh services
+    # Start sshd service
     Start-Service sshd
-    Start-Service ssh-agent
-
-    # Configure ssh services to startup automatically
     Set-Service -Name sshd -StartupType 'Automatic'
-    Set-Service -Name ssh-agent -StartupType 'Automatic'
+
+    if ($EnableAgent) {
+        # Start ssh-agent service
+        Start-Service ssh-agent
+        Set-Service -Name ssh-agent -StartupType 'Automatic'
+    }
 
     # Confirm the Firewall rule is configured. It should be created automatically by setup. Run the following to verify
     if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
@@ -228,6 +224,19 @@ function Install-SSH() {
 
     # Configure default shell
     Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $env:ProgramFiles\PowerShell\7\pwsh.exe
+}
+
+function Enable-1PasswordSSH() {
+    # Check if user is admin
+    # if (true) {
+    #     $authorizedKeys = ${Env:ProgramData}/ssh/administrators_authorized_keys
+    # }
+    # else {
+    #     $authorizedKeys = ${$Env:USERPROFILE}/.ssh/authorized_keys
+    # }
+
+    # # Write 1Password SSH keys to authorized_keys
+
 }
 
 function Install-Remoting() {
@@ -268,7 +277,7 @@ function Install-Speedtest() {
     .SYNOPSIS
         Install speedtest cli
     #>
-    $uri = 'https://bintray.com/ookla/download/download_file?file_path=ookla-speedtest-1.0.0-win64.zip'
+    $uri = 'https://install.speedtest.net/app/cli/ookla-speedtest-1.1.1-win64.zip'
     $bin = Join-Path -Path $Env:SystemDrive -ChildPath bin
     Write-Output 'Updating speedtest'
     Install-Zip -Uri $uri -Dest $bin

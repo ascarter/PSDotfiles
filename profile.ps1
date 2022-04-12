@@ -12,13 +12,16 @@ $Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSD
 
 # Add tools to path
 Update-Path @(
-    (Join-Path -Path $Env:SystemDrive -ChildPath bin),
-    (Join-Path -Path $Env:LOCALAPPDATA -ChildPath Fork),
-    (Join-Path -Path $Env:ProgramFiles -ChildPath '7-Zip'),
-    (Join-Path -Path $Env:ProgramFiles -ChildPath 'Sublime Text'),
-    (Join-Path -Path $Env:ProgramFiles -ChildPath 'Yubico\YubiKey Manager'),
-    (Join-Path -Path $Env:ProgramFiles -ChildPath qemu),
-    (Join-Path -Path $Env:ProgramFiles -ChildPath vim\vim82)
+    (Join-Path -Path ${env:SystemDrive} -ChildPath bin),
+    (Join-Path -Path ${env:LOCALAPPDATA} -ChildPath Fork),
+    (Join-Path -Path ${env:ProgramFiles} -ChildPath '7-Zip'),
+    (Join-Path -Path ${env:ProgramFiles} -ChildPath 'Sublime Text'),
+    (Join-Path -Path ${env:ProgramFiles} -ChildPath 'Yubico\YubiKey Manager'),
+    (Join-Path -Path ${env:ProgramFiles} -ChildPath qemu),
+    (Join-Path -Path ${env:ProgramFiles} -ChildPath vim\vim82),
+    (Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath GnuPG\bin),
+    (Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Gpg4Win\bin'),
+    (Join-Path -Path ${env:ProgramFiles(x86)} -ChildPath 'Gpg4Win\bin_64')
 )
 
 #region Aliases
