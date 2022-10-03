@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    PSDotfiles Install script for Windows 10 and Windows 11
+    PSDotfiles Install script for Windows 10/11
 .DESCRIPTION
 	Install user profile and configuration
 #>
@@ -46,6 +46,7 @@ foreach ($p in $packages) {
 }
 
 Write-Output 'Installing PSDotfiles'
+
 # Clone PSdotfiles
 if (-not (Test-Path -Path $Path)) {
     Write-Output 'Clone PSDotfiles'
@@ -70,6 +71,7 @@ else {
 }
 
 Write-Output 'Bootstrap PSDotfiles'
+
 if (-not (Get-Module PSDotfiles)) { Import-Module (Join-Path -Path $Path -ChildPath Modules\PSDotfiles) }
 Install-Bootstrap -Path $Path -Force:$Force -Verbose
 
