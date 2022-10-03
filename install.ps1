@@ -45,6 +45,9 @@ foreach ($p in $packages) {
     }
 }
 
+# Reload environment
+$Env:Path = @([System.Environment]::GetEnvironmentVariable("Path","Machine"), [System.Environment]::GetEnvironmentVariable("Path","User")) -Join ";"   
+
 Write-Output 'Installing PSDotfiles'
 
 # Clone PSdotfiles
