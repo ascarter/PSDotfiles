@@ -60,7 +60,9 @@ if (-not (Test-Path -Path $Path)) {
     Start-Process -FilePath (Get-Command git.exe) -ArgumentList "clone https://github.com/ascarter/PSDotfiles.git $Path" -Wait -NoNewWindow
 }
 else {
-    Write-Verbose 'PSDotfiles installed'
+    # Update PSDotfiles
+    Start-Process -FilePath (Get-Command git.exe) -ArgumentList "pull" -Wait -NoNewWindow -WorkingDirectory $Path
+    Write-Verbose 'PSDotfiles updated'
 }
 
 # Set PSDOTFILES environment variable
