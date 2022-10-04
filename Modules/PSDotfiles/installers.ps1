@@ -89,10 +89,12 @@ function Install-Zip {
             $target = Join-Path -Path $env:TEMP -ChildPath $zipfile
 
             # Download to temp
+            Write-Verbose "Downloading $uri to $target"
             $wc = New-Object System.Net.WebClient
             $wc.DownloadFile($uri, $target)
 
             # Unzip
+            Write-Verbose "Extracting $target to $Dest"
             Expand-Archive -Path $target -DestinationPath $Dest -Force
         }
         finally {
@@ -223,7 +225,7 @@ function Install-SSH() {
     }
 
     # Configure default shell
-    Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $env:ProgramFiles\PowerShell\7\pwsh.exe
+    Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $Env:ProgramFiles\PowerShell\7\pwsh.exe
 }
 
 function Enable-1PasswordSSH() {
@@ -272,15 +274,37 @@ function Install-Bin {
     Update-Path @($usrbin) -SetEnv
 }
 
-function Install-Speedtest() {
+function Install-CLI() {
+    <#
+    .SYNOPSIS
+        Install CLI to ProgramFiles
+    .PARAMETER Uri
+        URI of zip file for CLI
+    .PARAMETER Dest
+        Directory to install to in Program Files
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        [Parameter()]
+        [string]$Uri,
+        [string]$Dest
+    )
+    process {
+        $destDir = Join-Path -Path $Env:ProgramFiles -ChildPath $Dest
+        Invoke-Administrator -Command "& { Install-Zip -Uri '$Uri' -Dest '$destDir' }" -Core
+        # Add CLI to path
+        Update-Path @($destDir) -SetEnv
+    }
+}
+
+function Install-SpeedtestCLI() {
     <#
     .SYNOPSIS
         Install speedtest cli
     #>
-    $uri = 'https://install.speedtest.net/app/cli/ookla-speedtest-1.1.1-win64.zip'
-    $bin = Join-Path -Path $Env:SystemDrive -ChildPath bin
-    Write-Output 'Updating speedtest'
-    Install-Zip -Uri $uri -Dest $bin
+    $ver = "1.2.0"
+    $uri = "https://install.speedtest.net/app/cli/ookla-speedtest-$($ver)-win64.zip"
+    Install-CLI -Uri $uri -Dest 'Speedtest CLI'
 }
 
 function Install-1PasswordCLI() {
@@ -288,9 +312,14 @@ function Install-1PasswordCLI() {
     .SYNOPSIS
         Install 1Password CLI
     #>
-    $uri = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.0.0/op_windows_amd64_v2.0.0.zip"
-    $bin = Join-Path -Path $Env:SystemDrive -ChildPath bin
-    Write-Output 'Updating 1Password CLI'
-    Install-Zip -Uri $uri -Dest $bin
+    $arch = (Get-CimInstance Win32_OperatingSystem).OSArchitecture
+    switch ($arch) {
+        '64-bit' { $opArch = 'amd64'; break }
+        '32-bit' { $opArch = '386'; break }
+        Default { Write-Error "Unsupported architecture '$arch'" -ErrorAction Stop }
+    }
+    $ver = "v2.4.1"
+    $uri = "https://cache.agilebits.com/dist/1P/op2/pkg/$($ver)/op_windows_$($opArch)_$($ver).zip"
+    Install-CLI -URI $uri -Dest '1Password CLI'
 }
 #endregion
