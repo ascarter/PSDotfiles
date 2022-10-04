@@ -43,7 +43,6 @@ Plug 'altercation/vim-colors-solarized'
 Plug 'arcticicestudio/nord-vim'
 Plug 'cocopon/iceberg.vim'
 Plug 'kjssad/quantum.vim'
-Plug 'nightsense/snow'
 Plug 'NLKNguyen/papercolor-theme'
 Plug 'rakr/vim-one'
 Plug 'romainl/Apprentice'
@@ -248,7 +247,7 @@ if has("gui_running")
         set guifont=Fira\ Code\ 12,Roboto\ Mono\ 12,Source\ Code\ Pro\ Medium\ 12,Monospace\ 12
     elseif has('gui_win32')
         " Windows
-        set guifont=Fira\ Code:h10,Roboto\ Mono:h12,Cascadia\ Code:h12,Source\ Code\ Pro:h12,Consolas:h12
+        set guifont=Fira\ Code:h10,Roboto\ Mono:h12,Source\ Code\ Pro:h12,Cascadia\ Code:h12,Consolas:h12
         set renderoptions=type:directx
     endif
 endif
