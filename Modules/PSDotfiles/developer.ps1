@@ -22,6 +22,12 @@ if (Get-Command go -ErrorAction SilentlyContinue) {
     Update-Path @(Join-Path -Path (go env GOPATH) -ChildPath bin)
 }
 
+# Check for Python
+if (Get-Command python -ErrorAction SilentlyContinue) {
+    # Use UTF-8 by default
+    Set-Item -Path Env:PYTHONUTF8 -Value 1
+}
+
 # Check for Android SDK
 if (Test-Path -Path (Join-Path $Env:LOCALAPPDATA -ChildPath Android\SDK)) {
     if ($null -eq [System.Environment]::GetEnvironmentVariable('ANDROID_SDK_ROOT', 'User')) {
