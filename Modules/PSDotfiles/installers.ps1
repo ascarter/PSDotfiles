@@ -49,11 +49,20 @@ function Update-DevTools {
     Write-Output 'Update PowerShell modules'
     Update-PowerShellModules -Force:$Force
 
-    Write-Output 'Enable hypervisor platform (for Android emulator and QEMU)'
-    Invoke-Administrator -Command { Enable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform -All }
-
-    Write-Output 'Enable Hyper-V'
-    Invoke-Administrator -Command { Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All }
+    # Enable Windows Features
+    for ($f in @(
+            'VirtualMachinePlatform',
+            'HypervisorPlatform',
+            'Microsoft-Hyper-V'
+        )) {
+        try {
+            Write-Output "Enable $f"
+            Invoke-Administrator -Command "& { Enable-WindowsOptionalFeature -Online -FeatureName '$f' -All -NoRestart }"
+        }
+        catch {
+            Write-Warning $_
+        }
+    }
 
     # Write-Output 'Enable WSL'
     # Invoke-Administrator -Command { wsl --update; wsl --install --distribution Ubuntu }
