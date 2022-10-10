@@ -50,7 +50,7 @@ function Update-DevTools {
     Update-PowerShellModules -Force:$Force
 
     # Enable Windows Features
-    for ($f in @(
+    foreach ($f in @(
             'VirtualMachinePlatform',
             'HypervisorPlatform',
             'Microsoft-Hyper-V'

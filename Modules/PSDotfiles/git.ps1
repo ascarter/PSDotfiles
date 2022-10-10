@@ -50,7 +50,7 @@ function Write-GitConfig {
     param()
 
     # Include defaults and aliases
-    Update-GitConfig -Key 'include.path' -Value (Join-Path -Path $Env:DOTFILES -ChildPath conf\gitconfig)
+    Update-GitConfig -Key 'include.path' -Value (Join-Path -Path $Env:PSDOTFILES -ChildPath conf\gitconfig)
 
     # Set SSH command
     Set-GitConfig -Key 'core.sshCommand' -Value 'C:/Windows/System32/OpenSSH/ssh.exe'
