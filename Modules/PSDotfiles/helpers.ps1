@@ -1,3 +1,5 @@
+#region Profile
+
 function Set-LocationDotfiles {
     Set-Location -Path $Env:PSDOTFILES
 }
@@ -7,38 +9,6 @@ function Start-ProfileEdit {
     code -n $PROFILE.CurrentUserAllHosts
 }
 Set-Alias -Name editprofile -Value Start-ProfileEdit
-
-function Test-Adminstrator {
-    ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-function Invoke-Administrator {
-    <#
-    .SYNOPSIS
-    Execute command using elevated privileges (sudo for Windows)
-    .EXAMPLE
-    PS> Invoke-Administrator -Command &{Write-Host "I am admin"}
-
-    This example runs a Write-Host command as Administrator
-    .PARAMETER Command
-    Script block for command to execute as Administrator
-    #>
-    [CmdletBinding(SupportsShouldProcess)]
-    param (
-        [Parameter()]
-        [string]$Command,
-        [switch]$Core
-    )
-    process {
-        if ($Core) {
-            $pwsh = 'pwsh'
-        } else {
-            $pwsh = 'powershell'
-        }
-        Start-Process $pwsh -Verb RunAs -ArgumentList @('-Command', $Command) -Wait
-    }
-}
-Set-Alias -Name sudo -Value Invoke-Administrator
 
 function Update-Path {
     <#
@@ -86,6 +56,48 @@ function Update-Path {
     }
 }
 
+#endregion
+
+
+#region sudo
+
+function Test-Adminstrator {
+    ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Invoke-Administrator {
+    <#
+    .SYNOPSIS
+    Execute command using elevated privileges (sudo for Windows)
+    .EXAMPLE
+    PS> Invoke-Administrator -Command &{Write-Host "I am admin"}
+
+    This example runs a Write-Host command as Administrator
+    .PARAMETER Command
+    Script block for command to execute as Administrator
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        [Parameter()]
+        [string]$Command,
+        [switch]$Core
+    )
+    process {
+        if ($Core) {
+            $pwsh = 'pwsh'
+        } else {
+            $pwsh = 'powershell'
+        }
+        Start-Process $pwsh -Verb RunAs -ArgumentList @('-Command', $Command) -Wait
+    }
+}
+Set-Alias -Name sudo -Value Invoke-Administrator
+
+#endregion
+
+
+#region Owner
+
 $OwnerKey = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
 
 function Get-Owner {
@@ -125,3 +137,64 @@ function Update-Owner {
 
     Get-Owner
 }
+
+#endregion
+
+
+#region Environment Variables
+
+$SessionEnvKey = 'HKLM:\System\CurrentControlSet\Control\Session Manager\Environment'
+
+function Get-EnvironmentVariable {
+    <#
+    .SYNOPSIS
+        Get system environment variable
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Name
+    )
+
+    Get-ItemProperty -Path $SessionEnvKey -Name $Name | Format-Table $Name
+}
+
+function Set-EnvironmentVariable {
+    <#
+    .SYNOPSIS
+        Set system environment variable
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Name,
+        [string]$Value
+    )
+
+    Set-ItemProperty -Path $SessionEnvKey -Name $Name -Value $Value
+}
+
+#region Multipass
+
+$MultipassStorageEnv = 'MULTIPASS_STORAGE'
+
+function Get-MultipassStoragePath {
+    <#
+    .SYNOPSIS
+        Get Multipass storage location
+    #>
+    Get-EnvironmentVariable -Name $MultipassStorageEnv
+}
+
+function Set-MultipassStoragePath {
+    <#
+    .SYNOPSIS
+        Set Multipass storage path
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$Path
+    )
+    Stop-Service Multipass
+    Set-EnvironmentVariable -Name $MultipassStorageEnv -Value $Path
+    Start-Service Multipass
+}
+#endregion
