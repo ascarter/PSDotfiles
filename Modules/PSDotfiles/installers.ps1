@@ -67,6 +67,10 @@ function Update-DevTools {
     # Write-Output 'Enable WSL'
     # Invoke-Administrator -Command { wsl --update; wsl --install --distribution Ubuntu }
 
+    # Install developer tools
+    # winget install --id GoLang.Go.1.19 --interactive
+    # go install github.com/jstarks/npiperelay@latest
+
     Write-Output 'Recommend reboot to enable all services'
 }
 
