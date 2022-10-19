@@ -259,10 +259,12 @@ function Enable-1PasswordSSH() {
         Write-Output "Generating $keyfile"
 
         Invoke-Administrator -Command "& {
-            Set-Content -Force -Path '$keyfile' -Value '$keydata'
-            icacls.exe '$keyfile' /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'
-            icacls.exe '$keyfile' /remove 'Authenticated Users:F'
+            Set-Content -Force -Path $keyfile -Value '$keydata'
+            Get-Acl $ENV:ProgramData\ssh\ssh_host_dsa_key | Set-Acl $keyfile
         }"
+
+        #icacls.exe '$keyfile' /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'
+        #icacls.exe '$keyfile' /remove 'Authenticated Users:F'
 
         #     # Set ACL's for users
         #     $users = @('Administrators', 'System')
