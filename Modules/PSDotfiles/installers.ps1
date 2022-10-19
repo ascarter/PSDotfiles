@@ -212,42 +212,78 @@ function Install-SSH() {
 
     # Install OpenSSH
     # https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
-    Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
-    Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+    Invoke-Administrator -Command { Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 }
+    Invoke-Administrator -Command { Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 }
 
     # Start sshd service
-    Start-Service sshd
-    Set-Service -Name sshd -StartupType 'Automatic'
+    Invoke-Administrator -Command {
+        Start-Service sshd
+        Set-Service -Name sshd -StartupType 'Automatic'
+    }
+    Get-Service sshd
 
     if ($EnableAgent) {
         # Start ssh-agent service
-        Start-Service ssh-agent
-        Set-Service -Name ssh-agent -StartupType 'Automatic'
+        Invoke-Administrator -Command {
+            Start-Service ssh-agent
+            Set-Service -Name ssh-agent -StartupType 'Automatic'
+        }
     }
 
     # Confirm the Firewall rule is configured. It should be created automatically by setup. Run the following to verify
     if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
         Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."
-        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+        Invoke-Administrator -Command {
+            New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+        }
     } else {
         Write-Output "Firewall rule 'OpenSSH-Server-In-TCP' has been created and exists."
     }
 
     # Configure default shell
-    Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $Env:ProgramFiles\PowerShell\7\pwsh.exe
+    Invoke-Administrator -Command {
+        Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $Env:ProgramFiles\PowerShell\7\pwsh.exe
+    }
 }
 
 function Enable-1PasswordSSH() {
     # Check if user is admin
     # if (true) {
-    #     $authorizedKeys = ${Env:ProgramData}/ssh/administrators_authorized_keys
+        $keyfile = "$Env:ProgramData\ssh\administrators_authorized_keys"
+        $keydata = @(ssh-add -L) -join "`r`n"
+
+        Write-Output "Generating $keyfile"
+
+        Invoke-Administrator -Command "& {
+            Set-Content -Force -Path '$keyfile' -Value '$keydata'
+            icacls.exe '$keyfile' /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'
+            icacls.exe '$keyfile' /remove 'Authenticated Users:F'
+        }"
+
+        #     # Set ACL's for users
+        #     $users = @('Administrators', 'System')
+
+        #     # Permissions: rights, inherit, propogation, rule type
+        #     $permissions = @('FullControl', 'None', 'None', 'Allow')
+        #     foreach ($u in $users) {
+        #         $acl = Get-Acl $keyfile
+        #         $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList @($u) + $permissions
+        #         $acl.SetAccessRule($rule)
+        #         $acl | Set-Acl -Path $keyfile
+        #     }
+
+        #     # Remove authenticated users
+        #     $acl = Get-Acl $keyfile
+        #     $rules = $acl.Access | where IsInherited -eq $false
+        #     $targetRule = $rules | where IdentityReference -eq 'Authenticated Users'
+        #     $acl.RemoveAccessRule($targetRule)
+        #     $acl | Set-Acl -Path $keyfile
+        # }"
     # }
     # else {
-    #     $authorizedKeys = ${$Env:USERPROFILE}/.ssh/authorized_keys
+        # New-Item -Force -ItemType Directory -Path $Env:USERPROFILE\.ssh
+        # Add-Content -Force -Path $Env:USERPROFILE\.ssh\authorized_keys -Value (ssh-add -L)
     # }
-
-    # # Write 1Password SSH keys to authorized_keys
-
 }
 
 function Install-Remoting() {
