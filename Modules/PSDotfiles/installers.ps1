@@ -251,45 +251,45 @@ function Install-SSH() {
 }
 
 function Enable-1PasswordSSH() {
-    # Check if user is admin
-    # if (true) {
-        $keyfile = "$Env:ProgramData\ssh\administrators_authorized_keys"
-        $keydata = @(ssh-add -L) -join "`r`n"
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        # Configure as Administrator
+        [switch]$Admin
+    )
 
-        Write-Output "Generating $keyfile"
+    if ($Admin) {
+        Invoke-Administrator -Core -Command { Enable-1PasswordSSH }
+        Break
+    }
 
-        Invoke-Administrator -Command "& {
-            Set-Content -Force -Path $keyfile -Value '$keydata'
-            Get-Acl $ENV:ProgramData\ssh\ssh_host_dsa_key | Set-Acl $keyfile
-        }"
+    if (Test-Adminstrator) {
+        $keyfile = Join-Path -Path $Env:ProgramData -ChildPath "ssh\administrators_authorized_keys"
+    } else {
+        $keyfile = Join-Path -Path $Env:USERPROFILE -ChildPath ".ssh\authorized_keys"
+    }
 
-        #icacls.exe '$keyfile' /inheritance:r /grant 'Administrators:F' /grant 'SYSTEM:F'
-        #icacls.exe '$keyfile' /remove 'Authenticated Users:F'
+    # Ensure SSH directory is present
+    $sshdir = Split-Path -Path $keyfile
+    if (-Not (Test-Path -Path $sshdir)) {
+        Write-Output "Creating $sshdir"
+        New-Item -Force -ItemType Directory -Path $sshdir
+    }
 
-        #     # Set ACL's for users
-        #     $users = @('Administrators', 'System')
+    # Fetch keys from 1Password agent
+    $keys = @(ssh-add -L)
+    Write-Output ("Found {0} keys in 1Password agent." -f $keys.Length)
 
-        #     # Permissions: rights, inherit, propogation, rule type
-        #     $permissions = @('FullControl', 'None', 'None', 'Allow')
-        #     foreach ($u in $users) {
-        #         $acl = Get-Acl $keyfile
-        #         $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule -ArgumentList @($u) + $permissions
-        #         $acl.SetAccessRule($rule)
-        #         $acl | Set-Acl -Path $keyfile
-        #     }
+    # Merge 1Password keys and any existing keys
+    if (Test-Path -Path $keyfile) {
+        $keys = (($keys + (Get-Content -Path $keyfile)) | Select-Object -Unique)
+    }
+    Write-Output ("Enabling {0} keys in {1}" -f $keys.Length, $keyfile)
+    Set-Content -Force -Path $keyfile -Value $keys
 
-        #     # Remove authenticated users
-        #     $acl = Get-Acl $keyfile
-        #     $rules = $acl.Access | where IsInherited -eq $false
-        #     $targetRule = $rules | where IdentityReference -eq 'Authenticated Users'
-        #     $acl.RemoveAccessRule($targetRule)
-        #     $acl | Set-Acl -Path $keyfile
-        # }"
-    # }
-    # else {
-        # New-Item -Force -ItemType Directory -Path $Env:USERPROFILE\.ssh
-        # Add-Content -Force -Path $Env:USERPROFILE\.ssh\authorized_keys -Value (ssh-add -L)
-    # }
+    # Set permissions on adminstrator authorized keys file
+    if (Test-Adminstrator) {
+        Get-Acl $ENV:ProgramData\ssh\ssh_host_dsa_key | Set-Acl $keyfile
+    }
 }
 
 function Install-Remoting() {
@@ -301,6 +301,45 @@ function Install-Remoting() {
     Invoke-Administrator -Core -Command {
         Install-PowerShellRemoting.ps1
         Enable-PSRemoting
+    }
+}
+
+function Enable-PowershellSSHRemoting() {
+    # Add Powershell subsystem to sshd_config
+    $sshd_config = Join-Path -Path  $Env:ProgramData -ChildPath 'ssh\sshd_config'
+    $lines = Get-Content -Path $sshd_config
+    $subsystems = $lines -match '^Subsystem'
+    $configdata = $lines -notmatch '^Subsystem'
+
+    Write-Output "Current subsystems:"
+    $subsystems | Write-Output
+
+    if (($subsystems -match '^Subsystem\spowershell').Length -eq 0) {
+        # Add powershell to subsystems
+        $subsystems += "Subsystem	powershell	c:/progra~1/powershell/7/pwsh.exe -sshs -nologo"
+
+        $output = foreach ($line in $configdata) {
+            switch -Wildcard ($line) {
+                "*subsystems" {
+                    # Write subsystems block
+                    $line
+                    $subsystems
+                }
+                Default { $line }
+            }
+        }
+
+        Write-Output "Updated subsystems:"
+        $subsystems | Write-Output
+
+        Write-Debug "sshd_config:"
+        $output | Write-Debug
+
+        # Rewrite sshd_config
+        Invoke-Administrator -Core -Command "& { Set-Content -Force -Path '$sshd_config' -Value '$output' }"
+        Write-Output "Restart sshd service to enable Powershell subsystem."
+    } else {
+        Write-Output "Subsystem Powershell enabled "
     }
 }
 
@@ -342,7 +381,7 @@ function Install-CLI() {
     )
     process {
         $destDir = Join-Path -Path $Env:ProgramFiles -ChildPath $Dest
-        Invoke-Administrator -Command "& { Install-Zip -Uri '$Uri' -Dest '$destDir' }" -Core
+        Invoke-Administrator -Core -Command "& { Install-Zip -Uri '$Uri' -Dest '$destDir' }"
         # Add CLI to path
         Update-Path @($destDir) -SetEnv
     }
