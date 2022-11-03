@@ -1,6 +1,6 @@
 #region sudo
 
-function Test-Adminstrator {
+function Test-Administrator {
     <#
         .SYNOPSIS
             Test if active user is administrator
@@ -13,7 +13,7 @@ function Assert-Administrator {
         .SYNOPSIS
             Require administrator privileges or abort. Used to ensure code is executed only when Administrator.
     #>
-    if (-not (Test-Adminstrator)) {
+    if (-not (Test-Administrator)) {
         Write-Warning "Administrator required to execute"
         Break
     }
@@ -74,6 +74,7 @@ function Invoke-Administrator {
     }
     $procArgs = @('-Command', $cmdLine)
     if ($NoExit) { $procArgs = @('-NoExit') + $procArgs }
+
     Start-Process -FilePath $shell -ArgumentList $procArgs -Wait:$Wait -Verb RunAs
 }
 

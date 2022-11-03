@@ -288,7 +288,7 @@ function Add-SSHAuthorizedKeys {
         [switch]$Force
     )
 
-    if (Test-Adminstrator) {
+    if (Test-Administrator) {
         $keyfile = Join-Path -Path $Env:ProgramData -ChildPath "ssh\administrators_authorized_keys"
     } else {
         $keyfile = Join-Path -Path $Env:USERPROFILE -ChildPath ".ssh\authorized_keys"
@@ -316,7 +316,7 @@ function Add-SSHAuthorizedKeys {
     Set-Content -Force -Path $keyfile -Value $keys
 
     # Set permissions on adminstrator authorized keys file
-    if (Test-Adminstrator) {
+    if (Test-Administrator) {
         Get-Acl $ENV:ProgramData\ssh\ssh_host_dsa_key | Set-Acl $keyfile
     }
 }
