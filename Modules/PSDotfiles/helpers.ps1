@@ -1,14 +1,18 @@
 #region Profile
 
 function Set-LocationDotfiles {
+    [CmdletBinding()]
+    [Alias("dotfiles")]
+    param()
     Set-Location -Path $Env:PSDOTFILES
 }
-Set-Alias -Name dotfiles -Value Set-LocationDotfiles
 
 function Start-ProfileEdit {
+    [CmdletBinding()]
+    [Alias("editprofile")]
+    param()
     code -n $PROFILE.CurrentUserAllHosts
 }
-Set-Alias -Name editprofile -Value Start-ProfileEdit
 
 function Update-Path {
     <#
@@ -31,67 +35,29 @@ function Update-Path {
         [Parameter(Mandatory = $false)]
         [switch]$SetEnv
     )
-    process {
-        $parts = ($Env:PATH -Split ';' | Sort-Object | Get-Unique)
-        if ($SetEnv) {
-            $envparts = ([System.Environment]::GetEnvironmentVariable('PATH') -Split ';' | Sort-Object | Get-Unique)
-        }
 
-        foreach ($p in $paths) {
-            if (Test-Path -Path $p) {
-                # Add to current path
-                if ($parts -NotContains $p) { $parts += $p }
-                # Add to environment path if requested
-                if (($SetEnv) -and ($envparts -NotContains $p)) { $envparts += $p }
-            }
-        }
+    $parts = ($Env:PATH -Split ';' | Sort-Object | Get-Unique)
+    if ($SetEnv) {
+        $envparts = ([System.Environment]::GetEnvironmentVariable('PATH') -Split ';' | Sort-Object | Get-Unique)
+    }
 
-        # Set current path
-        $Env:PATH = $parts -Join ';'
-
-        # Save to environment path if requested
-        if ($SetEnv) {
-            [System.Environment]::SetEnvironmentVariable('PATH', $envparts -Join ';', [System.EnvironmentVariableTarget]::User)
+    foreach ($p in $paths) {
+        if (Test-Path -Path $p) {
+            # Add to current path
+            if ($parts -NotContains $p) { $parts += $p }
+            # Add to environment path if requested
+            if (($SetEnv) -and ($envparts -NotContains $p)) { $envparts += $p }
         }
     }
-}
 
-#endregion
+    # Set current path
+    $Env:PATH = $parts -Join ';'
 
-
-#region sudo
-
-function Test-Adminstrator {
-    ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-function Invoke-Administrator {
-    <#
-    .SYNOPSIS
-    Execute command using elevated privileges (sudo for Windows)
-    .EXAMPLE
-    PS> Invoke-Administrator -Command &{Write-Host "I am admin"}
-
-    This example runs a Write-Host command as Administrator
-    .PARAMETER Command
-    Script block for command to execute as Administrator
-    #>
-    [CmdletBinding(SupportsShouldProcess)]
-    param (
-        [Parameter()]
-        [string]$Command,
-        [switch]$Core
-    )
-    process {
-        if ($Core) {
-            $pwsh = 'pwsh'
-        } else {
-            $pwsh = 'powershell'
-        }
-        Start-Process $pwsh -Verb RunAs -ArgumentList @('-Command', $Command) -Wait
+    # Save to environment path if requested
+    if ($SetEnv) {
+        [System.Environment]::SetEnvironmentVariable('PATH', $envparts -Join ';', [System.EnvironmentVariableTarget]::User)
     }
 }
-Set-Alias -Name sudo -Value Invoke-Administrator
 
 #endregion
 
@@ -108,16 +74,19 @@ function Get-Owner {
 
     Get-ItemProperty -Path $OwnerKey | Format-Table RegisteredOwner, RegisteredOrganization
 }
+
 function Update-Owner {
     <#
     .SYNOPSIS
         Set owner and organization
     #>
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param(
         [string]$Owner = (Get-ItemProperty -Path $OwnerKey).RegisteredOwner,
         [string]$Organization = (Get-ItemProperty -Path $OwnerKey).RegisteredOrganization
     )
+
+    Assert-Administrator
 
     $values = @{
         RegisteredOwner        = $Owner
@@ -128,7 +97,7 @@ function Update-Owner {
     foreach ($prop in $values.Keys) {
         $value = $values[$prop]
         if ($value -ne $current.$prop) {
-            Invoke-Administrator "& { Set-ItemProperty -Path '$OwnerKey' -Name '$prop' -Value '$value' }"
+            Set-ItemProperty -Path $OwnerKey -Name $prop -Value $value
         }
         else {
             Write-Output "No change for $prop"

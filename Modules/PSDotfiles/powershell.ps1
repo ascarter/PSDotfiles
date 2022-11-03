@@ -12,23 +12,32 @@ if (Get-Command winget -ErrorAction SilentlyContinue) {
     }
 }
 
-function Get-CmdletAlias ($cmdletname) {
+function Get-CmdletAlias {
     <#
         .SYNOPSIS
             List aliases for any cmdlet
     #>
+    [CmdletBinding()]
+    [Alias("fal")]
+    param(
+        [string]$Name
+    )
     Get-Alias |
-    Where-Object -FilterScript { $_.Definition -like "$cmdletname" } |
+    Where-Object -FilterScript { $_.Definition -like "$Name" } |
     Format-Table -Property Definition, Name -AutoSize
 }
 
 function Get-Uname {
     <#
-    .SYNOPSIS
-    Emulate Unix uname
+        .SYNOPSIS
+            Emulate Unix uname
     #>
+    [CmdletBinding()]
+    [Alias("uname")]
+    param()
     Get-CimInstance Win32_OperatingSystem | Select-Object 'Caption', 'CSName', 'Version', 'BuildType', 'OSArchitecture' | Format-Table
 }
+
 
 function Invoke-SSHWithPassword {
     <#
@@ -36,6 +45,7 @@ function Invoke-SSHWithPassword {
             Execute SSH using password authentication
     #>
     [CmdletBinding()]
+    [Alias("sshpw")]
     param (
         [string[]]
         [Parameter(Position=1, ValueFromRemainingArguments)]
@@ -44,15 +54,24 @@ function Invoke-SSHWithPassword {
     ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no $Remaining
 }
 
+function Get-LastCommand {
+    [CmdletBinding()]
+    [Alias("lc")]
+    param()
+    (Get-History | Select-Object -Last 1).CommandLine
+}
+
+function Select-Command {
+    [CmdletBinding()]
+    [Alias("slc")]
+    param()
+    & (Get-History | Sort-Object -Property Id -Descending | Select-Object -Property CommandLine | Out-ConsoleGridView -OutputMode Single -Title "Select Command").CommandLine
+}
+
 # Unix aliases
-Set-Alias -Name uname -Value Get-Uname
 Set-Alias -Name ll -Value Get-ChildItem
 Set-Alias -Name which -Value Get-Command
 
 # macOS aliases
 Set-Alias -Name pbcopy -Value Set-Clipboard
 Set-Alias -Name pbpaste -Value Get-Clipboard
-
-Set-Alias -Name fal -Value Get-CmdletAlias
-
-Set-Alias -Name sshpw -Value Invoke-SSHWithPassword

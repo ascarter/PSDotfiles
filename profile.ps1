@@ -6,7 +6,7 @@ if ($null -eq [System.Environment]::GetEnvironmentVariable('PSDOTFILES', 'User')
 }
 
 # Add PSDotfiles module to path
-$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSDOTFILES -ChildPath modules)
+$Env:PSModulePath += [System.IO.Path]::PathSeparator + (Join-Path -Path $Env:PSDOTFILES -ChildPath Modules)
 
 #endregion
 
@@ -26,19 +26,22 @@ Update-Path @(
 
 #region Aliases
 
-function Start-DevEnv() {
+function Start-DevEnv {
+    [CmdletBinding()]
+    [Alias("dev")]
+    param()
     & { Import-Module (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\2019\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll'); Enter-VsDevShell da341a44 }
 }
-Set-Alias -Name dev -Value Start-DevEnv
 
 function Start-Fork {
+    [CmdletBinding()]
+    [Alias("fork")]
     param(
         [string]$Repo = $PWD
     )
 
     & Fork.exe (Convert-Path -Path $Repo)
 }
-Set-Alias -Name fork -Value Start-Fork
 
 Set-Alias -Name drawio -Value 'C:\Program Files\draw.io\draw.io.exe'
 Set-Alias -Name mc -Value 'C:\Program Files (x86)\Midnight Commander\mc.exe'

@@ -49,29 +49,41 @@ function Update-DevTools {
     Write-Output 'Update PowerShell modules'
     Update-PowerShellModules -Force:$Force
 
-    # Enable Windows Features
-    foreach ($f in @(
-            'VirtualMachinePlatform',
-            'HypervisorPlatform',
-            'Microsoft-Hyper-V'
-        )) {
-        try {
-            Write-Output "Enable $f"
-            Invoke-Administrator -Command "& { Enable-WindowsOptionalFeature -Online -FeatureName '$f' -All -NoRestart }"
-        }
-        catch {
-            Write-Warning $_
-        }
-    }
-
-    # Write-Output 'Enable WSL'
-    # Invoke-Administrator -Command { wsl --update; wsl --install --distribution Ubuntu }
-
     # Install developer tools
     # winget install --id GoLang.Go.1.19 --interactive
     # go install github.com/jstarks/npiperelay@latest
 
     Write-Output 'Recommend reboot to enable all services'
+}
+
+function Enable-Virtualization {
+    <#
+        .SYNOPSIS
+            Enable Windows virtualization features
+    #>
+
+    Assert-Administrator
+
+    # Enable Windows Features
+    $features = @('VirtualMachinePlatform', 'HypervisorPlatform', 'Microsoft-Hyper-V')
+    foreach ($f in $features) {
+        try {
+            Write-Output "Enable $f"
+            Enable-WindowsOptionalFeature -Online -FeatureName $f -All -NoRestart
+        }
+        catch { Write-Warning $_ }
+    }
+}
+
+function Enable-WSL {
+    <#
+        .SYNOPSIS
+            Enable Windows Subystem for Linux
+    #>
+    Assert-Administrator
+    Write-Output 'Enable WSL'
+    wsl --update
+    wsl --install --distribution Ubuntu
 }
 
 #endregion
@@ -95,24 +107,23 @@ function Install-Zip {
         [string]$Uri,
         [string]$Dest
     )
-    process {
-        try {
-            # Create a random file in temp
-            $zipfile = [System.IO.Path]::GetRandomFileName()
-            $target = Join-Path -Path $env:TEMP -ChildPath $zipfile
 
-            # Download to temp
-            Write-Verbose "Downloading $uri to $target"
-            $wc = New-Object System.Net.WebClient
-            $wc.DownloadFile($uri, $target)
+    try {
+        # Create a random file in temp
+        $zipfile = [System.IO.Path]::GetRandomFileName()
+        $target = Join-Path -Path $env:TEMP -ChildPath $zipfile
 
-            # Unzip
-            Write-Verbose "Extracting $target to $Dest"
-            Expand-Archive -Path $target -DestinationPath $Dest -Force
-        }
-        finally {
-            if (Test-Path $target) { Remove-Item -Path $target }
-        }
+        # Download to temp
+        Write-Verbose "Downloading $uri to $target"
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile($uri, $target)
+
+        # Unzip
+        Write-Verbose "Extracting $target to $Dest"
+        Expand-Archive -Path $target -DestinationPath $Dest -Force
+    }
+    finally {
+        if (Test-Path $target) { Remove-Item -Path $target }
     }
 }
 
@@ -174,12 +185,13 @@ function Update-PowerShellModules {
         # Replace existing modules
         [switch]$Force
     )
-    foreach ($m in @(
-            'Microsoft.PowerShell.ConsoleGuiTools',
-            'posh-git',
-            'PSScriptAnalyzer',
-            'WslInterop'
-        )) {
+    $psmodules = @(
+        'Microsoft.PowerShell.ConsoleGuiTools',
+        'posh-git',
+        'PSScriptAnalyzer',
+        'WslInterop'
+    )
+    foreach ($m in $psmodules) {
         try {
             if (-not (Find-Module -Name $m -ErrorAction SilentlyContinue)) { throw "Module $m is not available" }
 
@@ -207,60 +219,74 @@ function Update-PowerShellModules {
 
 #region System
 
-function Install-SSH() {
+function Install-SSH {
+    <#
+        .SYNOPSIS
+            Enable OpenSSH server
+        .PARAMETER EnableAgent
+            Enable SSH agent
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        # Enable OpenSSH Agent
         [switch]$EnableAgent
     )
 
+    Assert-Administrator
+
     # Install OpenSSH
     # https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse
-    Invoke-Administrator -Command { Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0 }
-    Invoke-Administrator -Command { Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0 }
+    Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+    Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 
     # Start sshd service
-    Invoke-Administrator -Command {
-        Start-Service sshd
-        Set-Service -Name sshd -StartupType 'Automatic'
-    }
+    Start-Service sshd
+    Set-Service -Name sshd -StartupType 'Automatic'
     Get-Service sshd
 
     if ($EnableAgent) {
         # Start ssh-agent service
-        Invoke-Administrator -Command {
-            Start-Service ssh-agent
-            Set-Service -Name ssh-agent -StartupType 'Automatic'
-        }
+        Start-Service ssh-agent
+        Set-Service -Name ssh-agent -StartupType 'Automatic'
     }
 
     # Confirm the Firewall rule is configured. It should be created automatically by setup. Run the following to verify
     if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
         Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."
-        Invoke-Administrator -Command {
-            New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
-        }
+        New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
     } else {
         Write-Output "Firewall rule 'OpenSSH-Server-In-TCP' has been created and exists."
     }
 
     # Configure default shell
-    Invoke-Administrator -Command {
-        Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $Env:ProgramFiles\PowerShell\7\pwsh.exe
-    }
+    Set-ItemProperty -Path HKLM:\SOFTWARE\OpenSSH -Name DefaultShell -Value $Env:ProgramFiles\PowerShell\7\pwsh.exe
 }
 
-function Enable-1PasswordSSH() {
+function Get-SSHAgentKeys {
+    <#
+        .SYNOPSIS
+            Fetch active public keys from SSH agent
+    #>
+    @(ssh-add -L)
+}
+
+function Add-SSHAuthorizedKeys {
+    <#
+        .SYNOPSIS
+            Add input list of keys as authorized SSH keys
+        .DESCRIPTION
+            Adds keys to either user's `~/.ssh/authorized_keys` file or to `$Env:ProgramData\ssh\adminstrator_authorized_keys`.
+            If executed using Administrator privileges, admin authorized key file is used. Otherwise uses user's authorized keys.
+        .PARAMETER AuthorizedKeys
+            List of SSH public keys to add to authorized keys. Can either be a single key or a list.
+            Default - any public keys in the active SSH agent
+        .PARAMETER Force
+            Replace all existing authorized keys with the input list
+    #>
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        # Configure as Administrator
-        [switch]$Admin
+        [string[]]$AuthorizedKeys = @(Get-SSHAgentKeys),
+        [switch]$Force
     )
-
-    if ($Admin) {
-        Invoke-Administrator -Core -Command { Enable-1PasswordSSH }
-        Break
-    }
 
     if (Test-Adminstrator) {
         $keyfile = Join-Path -Path $Env:ProgramData -ChildPath "ssh\administrators_authorized_keys"
@@ -275,15 +301,18 @@ function Enable-1PasswordSSH() {
         New-Item -Force -ItemType Directory -Path $sshdir
     }
 
-    # Fetch keys from 1Password agent
-    $keys = @(ssh-add -L)
-    Write-Output ("Found {0} keys in 1Password agent." -f $keys.Length)
-
-    # Merge 1Password keys and any existing keys
-    if (Test-Path -Path $keyfile) {
-        $keys = (($keys + (Get-Content -Path $keyfile)) | Select-Object -Unique)
+    # Use `-Force` to replace all existing keys with new list
+    if ((-not ($Force)) -and (Test-Path -Path $keyfile)) {
+        # Merge existing keys with input keys
+        $keys = (@(Get-Content -Path $keyfile) + @($AuthorizedKeys))
+    } else {
+        $keys = @($AuthorizedKeys)
     }
-    Write-Output ("Enabling {0} keys in {1}" -f $keys.Length, $keyfile)
+
+    # Filter duplicate keys
+    $keys = @($keys | Select-Object -Unique)
+
+    Write-Output ("Writing {0} keys to {1}" -f $keys.Length, $keyfile)
     Set-Content -Force -Path $keyfile -Value $keys
 
     # Set permissions on adminstrator authorized keys file
@@ -292,19 +321,30 @@ function Enable-1PasswordSSH() {
     }
 }
 
-function Install-Remoting() {
+function Install-Remoting {
     <#
-    .SYNOPSIS
-        Enable WS-Man remoting
+        .SYNOPSIS
+            Enable WS-Man remoting
     #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Assert-Administrator
     Write-Output 'Enable PowerShell Remoting'
-    Invoke-Administrator -Core -Command {
-        Install-PowerShellRemoting.ps1
-        Enable-PSRemoting
-    }
+    Install-PowerShellRemoting.ps1
+    Enable-PSRemoting
 }
 
-function Enable-PowershellSSHRemoting() {
+function Enable-PowerShellSSHRemoting {
+    <#
+        .SYNOPSIS
+            Enable SSH PowerShell remoting
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param()
+
+    Assert-Administrator
+
     # Add Powershell subsystem to sshd_config
     $sshd_config = Join-Path -Path  $Env:ProgramData -ChildPath 'ssh\sshd_config'
     $lines = Get-Content -Path $sshd_config
@@ -336,7 +376,7 @@ function Enable-PowershellSSHRemoting() {
         $output | Write-Debug
 
         # Rewrite sshd_config
-        Invoke-Administrator -Core -Command "& { Set-Content -Force -Path '$sshd_config' -Value '$output' }"
+        Set-Content -Force -Path $sshd_config -Value $output
         Write-Output "Restart sshd service to enable Powershell subsystem."
     } else {
         Write-Output "Subsystem Powershell enabled "
@@ -352,6 +392,7 @@ function Install-Bin {
     .SYNOPSIS
         Create system root bin for adding tools (like /usr/local/bin on Unix)
     #>
+    [CmdletBinding(SupportsShouldProcess)]
     param()
 
     $usrbin = Join-Path -Path $Env:SystemDrive -ChildPath bin
@@ -379,12 +420,11 @@ function Install-CLI() {
         [string]$Uri,
         [string]$Dest
     )
-    process {
-        $destDir = Join-Path -Path $Env:ProgramFiles -ChildPath $Dest
-        Invoke-Administrator -Core -Command "& { Install-Zip -Uri '$Uri' -Dest '$destDir' }"
-        # Add CLI to path
-        Update-Path @($destDir) -SetEnv
-    }
+    Assert-Administrator
+    $destDir = Join-Path -Path $Env:ProgramFiles -ChildPath $Dest
+    Install-Zip -Uri $Uri -Dest $destDir
+    # Add CLI to path
+    Update-Path @($destDir) -SetEnv
 }
 
 function Install-SpeedtestCLI() {
@@ -412,4 +452,5 @@ function Install-1PasswordCLI() {
     $uri = "https://cache.agilebits.com/dist/1P/op2/pkg/$($ver)/op_windows_$($opArch)_$($ver).zip"
     Install-CLI -URI $uri -Dest '1Password CLI'
 }
+
 #endregion

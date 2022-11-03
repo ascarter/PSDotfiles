@@ -9,6 +9,7 @@ if ($host.Name -eq 'ConsoleHost') {
 }
 
 # Import scripts
+. $PSScriptRoot/sudo.ps1
 . $PSScriptRoot/helpers.ps1
 . $PSScriptRoot/developer.ps1
 . $PSScriptRoot/git.ps1
