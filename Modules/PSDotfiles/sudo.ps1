@@ -65,22 +65,31 @@ function Invoke-Administrator {
         $PowerShellEdition = $PSVersionTable["PSEdition"]
     }
 
-    $parsedCommandLine = ($Command + " " + ($CommandLine -join " ")).Trim()
-
-    if ([string]::IsNullOrWhiteSpace($parsedCommandLine)) {
-        $parsedCommandLine = 'Write-Host "Administrative shell launched from sudo"'
-        $NoExit = $true
-    }
-
-    Write-Verbose ("sudo using PowerShell {0} edition: {1}" -f $PowerShellEdition, $parsedCommandLine)
+    $cmdLine = ($Command + " " + ($CommandLine -join " ")).Trim()
+    Write-Verbose ("sudo using PowerShell {0} edition: {1}" -f $PowerShellEdition, $cmdLine)
 
     switch ($PowerShellEdition) {
         "Core" { $shell = 'pwsh' }
         "Desktop" { $shell = 'powershell' }
     }
-    $procArgs = @('-Command', $parsedCommandLine)
+    $procArgs = @('-Command', $cmdLine)
     if ($NoExit) { $procArgs = @('-NoExit') + $procArgs }
     Start-Process -FilePath $shell -ArgumentList $procArgs -Wait:$Wait -Verb RunAs
+}
+
+function Invoke-AdministratorTerminal {
+    <#
+        .SYNOPSIS
+            Launch Windows Terminal as administrator
+        .DESCRIPTION
+            Launch a new Windows Terminal instance as administrator.
+            Alias `wsudo` for windowed sudo
+    #>
+    [CmdletBinding()]
+    [Alias("wsudo")]
+    param()
+
+    Start-Process -FilePath wt -Verb RunAs
 }
 
 #endregion
