@@ -215,6 +215,39 @@ function Update-PowerShellModules {
     }
 }
 
+$M365UpdateKey = 'HKLM:Software\Policies\Microsoft\office\16.0\common\officeupdate'
+
+function Get-M365UpdateChannel {
+    [CmdletBinding()]
+    param ()
+
+    # Check if the registry key exists
+    if (-not (Test-Path $M365UpdateKey)) {
+        Write-Output 'Current'
+        return
+    }
+
+    Write-Output (Get-ItemProperty -Path $M365UpdateKey -Name updatebranch).updatebranch
+}
+
+function Set-M365UpdateChannel {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [ValidateSet('Current', 'MonthlyEnterprise', 'BetaChannel', 'CurrentPreview')]
+        [string]$Channel = 'Current'
+    )
+
+    # Get the current update channel
+    $currentChannel = Get-M365UpdateChannel
+
+    # If the current channel is not the same as the requested channel, change it
+    if ($currentChannel -ne $Channel) {
+        Write-Output "Updating Microsoft 365 update channel from $currentChannel to $Channel"
+        Set-ItemProperty -Path $M365UpdateKey -Name updatebranch -Value $Channel
+    }
+}
+
 #endregion
 
 #region System
@@ -250,10 +283,11 @@ function Install-SSH {
     }
 
     # Confirm the Firewall rule is configured. It should be created automatically by setup. Run the following to verify
-    if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
+    if (!(Get-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
         Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."
         New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
-    } else {
+    }
+    else {
         Write-Output "Firewall rule 'OpenSSH-Server-In-TCP' has been created and exists."
     }
 
@@ -289,9 +323,10 @@ function Add-SSHAuthorizedKeys {
     )
 
     if (Test-Administrator) {
-        $keyfile = Join-Path -Path $Env:ProgramData -ChildPath "ssh\administrators_authorized_keys"
-    } else {
-        $keyfile = Join-Path -Path $Env:USERPROFILE -ChildPath ".ssh\authorized_keys"
+        $keyfile = Join-Path -Path $Env:ProgramData -ChildPath 'ssh\administrators_authorized_keys'
+    }
+    else {
+        $keyfile = Join-Path -Path $Env:USERPROFILE -ChildPath '.ssh\authorized_keys'
     }
 
     # Ensure SSH directory is present
@@ -305,7 +340,8 @@ function Add-SSHAuthorizedKeys {
     if ((-not ($Force)) -and (Test-Path -Path $keyfile)) {
         # Merge existing keys with input keys
         $keys = (@(Get-Content -Path $keyfile) + @($AuthorizedKeys))
-    } else {
+    }
+    else {
         $keys = @($AuthorizedKeys)
     }
 
@@ -346,21 +382,21 @@ function Enable-PowerShellSSHRemoting {
     Assert-Administrator
 
     # Add Powershell subsystem to sshd_config
-    $sshd_config = Join-Path -Path  $Env:ProgramData -ChildPath 'ssh\sshd_config'
+    $sshd_config = Join-Path -Path $Env:ProgramData -ChildPath 'ssh\sshd_config'
     $lines = Get-Content -Path $sshd_config
     $subsystems = $lines -match '^Subsystem'
     $configdata = $lines -notmatch '^Subsystem'
 
-    Write-Output "Current subsystems:"
+    Write-Output 'Current subsystems:'
     $subsystems | Write-Output
 
     if (($subsystems -match '^Subsystem\spowershell').Length -eq 0) {
         # Add powershell to subsystems
-        $subsystems += "Subsystem	powershell	c:/progra~1/powershell/7/pwsh.exe -sshs -nologo"
+        $subsystems += 'Subsystem	powershell	c:/progra~1/powershell/7/pwsh.exe -sshs -nologo'
 
         $output = foreach ($line in $configdata) {
             switch -Wildcard ($line) {
-                "*subsystems" {
+                '*subsystems' {
                     # Write subsystems block
                     $line
                     $subsystems
@@ -369,17 +405,18 @@ function Enable-PowerShellSSHRemoting {
             }
         }
 
-        Write-Output "Updated subsystems:"
+        Write-Output 'Updated subsystems:'
         $subsystems | Write-Output
 
-        Write-Debug "sshd_config:"
+        Write-Debug 'sshd_config:'
         $output | Write-Debug
 
         # Rewrite sshd_config
         Set-Content -Force -Path $sshd_config -Value $output
-        Write-Output "Restart sshd service to enable Powershell subsystem."
-    } else {
-        Write-Output "Subsystem Powershell enabled "
+        Write-Output 'Restart sshd service to enable Powershell subsystem.'
+    }
+    else {
+        Write-Output 'Subsystem Powershell enabled '
     }
 }
 
@@ -425,32 +462,6 @@ function Install-CLI() {
     Install-Zip -Uri $Uri -Dest $destDir
     # Add CLI to path
     Update-Path @($destDir) -SetEnv
-}
-
-function Install-SpeedtestCLI() {
-    <#
-    .SYNOPSIS
-        Install speedtest cli
-    #>
-    $ver = "1.2.0"
-    $uri = "https://install.speedtest.net/app/cli/ookla-speedtest-$($ver)-win64.zip"
-    Install-CLI -Uri $uri -Dest 'Speedtest CLI'
-}
-
-function Install-1PasswordCLI() {
-    <#
-    .SYNOPSIS
-        Install 1Password CLI
-    #>
-    $arch = (Get-CimInstance Win32_OperatingSystem).OSArchitecture
-    switch ($arch) {
-        '64-bit' { $opArch = 'amd64'; break }
-        '32-bit' { $opArch = '386'; break }
-        Default { Write-Error "Unsupported architecture '$arch'" -ErrorAction Stop }
-    }
-    $ver = "v2.4.1"
-    $uri = "https://cache.agilebits.com/dist/1P/op2/pkg/$($ver)/op_windows_$($opArch)_$($ver).zip"
-    Install-CLI -URI $uri -Dest '1Password CLI'
 }
 
 #endregion
