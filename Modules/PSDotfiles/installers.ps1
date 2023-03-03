@@ -127,6 +127,19 @@ function Install-Zip {
     }
 }
 
+function Get-WinGetLinks {
+    <#
+        .SYNOPSIS
+            List winget links
+    #>
+    [CmdletBinding()]
+    [Alias("wglinks")]
+    param ()
+
+    $linksPath = Join-Path $Env:LOCALAPPDATA -ChildPath Microsoft\WinGet\Links
+    Get-ChildItem -Path $linksPath | Where-Object -Property LinkType -eq -Value "SymbolicLink" | Format-Table -Property Name, LinkTarget
+}
+
 #endregion
 
 #region Configuration
