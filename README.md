@@ -1,5 +1,8 @@
 # PSDotfiles
 
+> This project is archived. It has been merged with [dotfiles](https://github.com/ascarter/dotfiles).
+
+
 PSDotfiles is a PowerShell module for configuring the user environment. It is inspired by how dotfiles work in POSIX operating systems but adapted for Windows and PowerShell.
 
 ## Layout
